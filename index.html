@@ -1,0 +1,53 @@
+<!doctype html5>
+<html>
+<head>
+  <title>Parrot</title>
+  <style>
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+</head>
+
+<body>
+  <h1>Parrot</h1>
+
+  <div id="app">
+    <p>
+      {{ message }}
+    </p>
+
+    <p>
+      <button v-on:click="play">Play</button>
+    </p>
+    
+    <p>
+      <button v-on:mousedown="startRecording"
+              v-on:mouseup="stopRecording">
+        Record
+      </button>
+    </p>
+
+  </div>
+
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data: {
+        message: 'Hello Vue!'
+      },
+      methods: {
+        play: function() {
+          this.message = 'playing';
+        },
+
+        startRecording: function() {
+          this.message = 'recording';
+        },
+
+        stopRecording: function() {
+          this.message = 'not recording';
+        }
+      }
+    })
+  </script>
+</body>
+</html>
