@@ -15,7 +15,7 @@
   <style>
     .media-button,
     .media-button-placeholder {
-      height: 10rem;
+      height: 8rem;
       font-size: 1.5rem;
     }
     .media-button-placeholder {
@@ -67,8 +67,7 @@
                     v-on:mousedown="startRecording"
                     v-on:touchstart="startRecording"
                     v-on:mouseup="stopRecording"
-                    v-on:touchend="stopRecording"
-                    v-bind:disabled="playing">
+                    v-on:touchend="stopRecording">
               <span class="oi oi-media-record"></span>
               {{ recording ? 'Recording...' : 'Record' }}
             </button>
@@ -171,6 +170,9 @@
           this.playing = !this.playing;
         },
         startRecording: async function() {
+          if (this.playing) {
+            await this.play();
+          }
           this.mediaRecorder.start();
           this.recording = !this.recording;
         },
