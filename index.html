@@ -11,43 +11,88 @@
   <h1>Parrot</h1>
 
   <div id="app">
-    <p>
-      {{ message }}
+    <audio ref="audio"
+           v-bind:src="audioUrl"
+           v-on:ended="onAudioEnded">
+    </audio>
+
+    <p v-if="errorMessage"
+      style="font-weight: bold; color: red">
+      {{ errorMessage }}
     </p>
 
-    <p>
-      <button v-on:click="play">Play</button>
-    </p>
-    
-    <p>
-      <button v-on:mousedown="startRecording"
-              v-on:mouseup="stopRecording">
-        Record
-      </button>
-    </p>
-
+    <div v-else>
+      <p>
+        <button v-on:click="play"
+                v-bind:disabled="!hasRecorded || recording">
+          {{ playing ? 'Stop' : 'Play' }}
+        </button>
+      </p>
+      
+      <p>
+        <button v-on:click="record"
+                v-bind:disabled="playing">
+          {{ recording ? 'Stop' : 'Record' }}
+        </button>
+      </p>
+    </div>
   </div>
 
   <script>
     var app = new Vue({
       el: '#app',
       data: {
-        message: 'Hello Vue!'
+        audioUrl: null,
+        playing: false,
+        recording: false,
+        hasRecorded: false,
+        errorMessage: null
+      },
+      mounted: async function() {
+        vue = this;
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(stream => {
+            vue.mediaRecorder = new MediaRecorder(stream);
+            
+            audioChunks = [];
+            vue.mediaRecorder.addEventListener('dataavailable', event => {
+              audioChunks.push(event.data);
+            });
+
+            vue.mediaRecorder.addEventListener("stop", () => {
+              const audioBlob = new Blob(audioChunks);
+              audioChunks = [];
+              const audioUrl = URL.createObjectURL(audioBlob);
+              vue.$refs.audio.src = audioUrl;
+            });
+          }).catch(function(err) {
+            vue.errorMessage = err.name + ": " + err.message;
+          });
       },
       methods: {
-        play: function() {
-          this.message = 'playing';
+        play: async function() {
+          if (this.playing) {
+            await this.$refs.audio.pause();
+          } else {
+            this.$refs.audio.currentTime = 0;
+            await this.$refs.audio.play();
+          }
+          this.playing = !this.playing;
         },
-
-        startRecording: function() {
-          this.message = 'recording';
+        record: async function() {
+          if (this.recording) {
+            await this.mediaRecorder.stop();
+            this.hasRecorded = true;
+          } else {
+            this.mediaRecorder.start();
+          }
+          this.recording = !this.recording;
         },
-
-        stopRecording: function() {
-          this.message = 'not recording';
+        onAudioEnded: function() {
+          this.playing = false;
         }
       }
-    })
+    });
   </script>
 </body>
 </html>
