@@ -36,7 +36,8 @@
       <audio ref="audio"
              v-bind:src="audioUrl"
              v-bind:loop="loop"
-             v-on:ended="onAudioEnded">
+             v-on:ended="onAudioEnded"
+             v-on:canplay="onCanPlay">
       </audio>
 
       <div v-if="errorMessage" class="alert alert-warning" role="alert">
@@ -49,7 +50,7 @@
             <button type="button"
                     class="btn btn-primary btn-lg btn-block media-button"
                     v-if="hasRecorded"
-                    v-on:click="play"
+                    v-on:click="togglePlay"
                     v-bind:disabled="recording">
               <span v-if="playing" class="oi oi-media-stop"></span>
               <span v-else class="oi oi-media-play"></span>
@@ -138,51 +139,70 @@
         await navigator.mediaDevices.getUserMedia({ audio: true })
           .then(stream =>  {
             vue.mediaRecorder = new MediaRecorder(stream);
-            
             audioChunks = [];
             vue.mediaRecorder.addEventListener('dataavailable', event => {
               audioChunks.push(event.data);
             });
-
-            vue.mediaRecorder.addEventListener("stop", () => {
+            vue.mediaRecorder.addEventListener('stop', () => {
               const audioBlob = new Blob(audioChunks);
               audioChunks = [];
+              // An empty audio file will produce an error of type
+              // net::ERR_REQUEST_RANGE_NOT_SATISFIABLE. A very small audio
+              // file will prevent the "onaudioevent" event from being fired.
+              if (audioBlob.size < 1000) return;
               const audioUrl = URL.createObjectURL(audioBlob);
+              vue.playRequested = vue.autoplay;
               vue.$refs.audio.src = audioUrl;
-
-              if (vue.autoplay) {
-                vue.play();
-              }
             });
           }).catch(function(err) {
-            vue.errorMessage = err.name + ": " + err.message;
+            vue.errorMessage = err.name + ': ' + err.message;
           });
       },
       methods: {
         play: async function() {
-          if (this.playing) {
-            await this.$refs.audio.pause();
-          } else {
-            this.$refs.audio.currentTime = 0;
-            await this.$refs.audio.play();
-          }
-          this.playing = !this.playing;
+          if (this.playLock) return;
+          this.playLock = true;
+          this.$refs.audio.currentTime = 0;
+          const vue = this;
+          await this.$refs.audio.play().then(() => {
+            vue.playing = true;
+          });
+          this.playLock = false;
         },
-        startRecording: async function() {
+        stop: function() {
+          this.$refs.audio.pause();
+          this.playing = false;
+        },
+        togglePlay: function() {
           if (this.playing) {
-            await this.play();
+            this.stop();
+          } else {
+            this.play();
+          }
+        },
+        startRecording: function() {
+          if (this.playing) {
+            this.stop();
           }
           this.mediaRecorder.start();
-          this.recording = !this.recording;
+          this.recording = true;
         },
-        stopRecording: async function() {
-          await this.mediaRecorder.stop();
-          this.hasRecorded = true;
-          this.recording = false;
+        stopRecording: function() {
+          this.$nextTick(function() {
+            this.mediaRecorder.stop();
+            this.hasRecorded = true;
+            this.recording = false;
+          });
         },
         onAudioEnded: function() {
           this.playing = false;
-        }
+        },
+        onCanPlay: function() {
+          if (this.playRequested) {
+            this.playRequested = false;
+            this.play();
+          }
+        },
       }
     });
   </script>
