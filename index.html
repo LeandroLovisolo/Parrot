@@ -149,7 +149,7 @@
               // An empty audio file will produce an error of type
               // net::ERR_REQUEST_RANGE_NOT_SATISFIABLE. A very small audio
               // file will prevent the "onaudioevent" event from being fired.
-              if (audioBlob.size < 1000) return;
+              if (audioBlob.size < 600) return;
               const audioUrl = URL.createObjectURL(audioBlob);
               vue.playRequested = vue.autoplay;
               vue.$refs.audio.src = audioUrl;
