@@ -2,6 +2,7 @@
 
 website: index.html
 	rm -rf website
+	mkdir website
 	cp index.html website
 
 publish: website
