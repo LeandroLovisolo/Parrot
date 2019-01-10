@@ -15,7 +15,7 @@
   <style>
     .media-button,
     .media-button-placeholder {
-      height: 10rem;
+      height: 8rem;
       font-size: 1.5rem;
     }
     .media-button-placeholder {
@@ -35,6 +35,7 @@
     <div id="app">
       <audio ref="audio"
              v-bind:src="audioUrl"
+             v-bind:loop="loop"
              v-on:ended="onAudioEnded">
       </audio>
 
@@ -66,8 +67,7 @@
                     v-on:mousedown="startRecording"
                     v-on:touchstart="startRecording"
                     v-on:mouseup="stopRecording"
-                    v-on:touchend="stopRecording"
-                    v-bind:disabled="playing">
+                    v-on:touchend="stopRecording">
               <span class="oi oi-media-record"></span>
               {{ recording ? 'Recording...' : 'Record' }}
             </button>
@@ -84,6 +84,16 @@
                 Play automatically.
               </label>
             </div>
+            <div class="form-check">
+              <input class="form-check-input"
+                    type="checkbox"
+                    id="loop"
+                    v-model="loop">
+              <label class="form-check-label" for="loop">
+                Loop.
+              </label>
+            </div>
+
           </div>
         </div>
       </div>
@@ -99,7 +109,8 @@
       <p>
         <small>
           Works best with
-          <a href="https://www.google.com/chrome/">Google Chrome</a>.
+          <a href="https://www.google.com/chrome/">Google Chrome</a>. iOS
+          support coming soon.
         </small>
       </p>
       <p>
@@ -120,6 +131,7 @@
         recording: false,
         hasRecorded: false,
         autoplay: true,
+        loop: false,
         errorMessage: null,
       },
       mounted: async function() {
@@ -158,6 +170,9 @@
           this.playing = !this.playing;
         },
         startRecording: async function() {
+          if (this.playing) {
+            await this.play();
+          }
           this.mediaRecorder.start();
           this.recording = !this.recording;
         },
