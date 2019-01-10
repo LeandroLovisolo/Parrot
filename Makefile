@@ -1,6 +1,6 @@
 .PHONY: website publish
 
-website:
+website: index.html
 	rm -rf website
 	cp index.html website
 
