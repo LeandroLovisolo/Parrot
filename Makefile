@@ -5,5 +5,5 @@ website: index.html
 	mkdir website
 	cp index.html website
 
-publish: website
+publish:
 	git subtree push --prefix website origin gh-pages
