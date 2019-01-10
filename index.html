@@ -12,6 +12,20 @@
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css"
         crossorigin="anonymous">
+  <style>
+    .media-button,
+    .media-button-placeholder {
+      height: 10rem;
+      font-size: 1.5rem;
+    }
+    .media-button-placeholder {
+      display: flex;
+      justify-content: center; 
+      align-items: center;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
@@ -31,23 +45,45 @@
       <div v-else>
         <div class="row mt-3">
           <div class="col-md-10 offset-md-1">
-            <button type="button" class="btn btn-primary btn-lg btn-block h-25"
+            <button type="button"
+                    class="btn btn-primary btn-lg btn-block media-button"
+                    v-if="hasRecorded"
                     v-on:click="play"
-                    v-bind:disabled="!hasRecorded || recording">
+                    v-bind:disabled="recording">
               <span v-if="playing" class="oi oi-media-stop"></span>
               <span v-else class="oi oi-media-play"></span>
               {{ playing ? 'Stop' : 'Play' }}
+            </button>
+            <div v-else class="media-button-placeholder">
+              Press and hold the Record button to begin.
+            </div>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-10 offset-md-1">
+            <button type="button"
+                    class="btn btn-danger btn-lg btn-block media-button"
+                    v-on:mousedown="startRecording"
+                    v-on:touchstart="startRecording"
+                    v-on:mouseup="stopRecording"
+                    v-on:touchend="stopRecording"
+                    v-bind:disabled="playing">
+              <span class="oi oi-media-record"></span>
+              {{ recording ? 'Recording...' : 'Record' }}
             </button>
           </div>
         </div>
         <div class="row mt-3">
           <div class="col-md-10 offset-md-1">
-            <button  type="button" class="btn btn-danger btn-lg btn-block h-25"
-                    v-on:click="record"
-                    v-bind:disabled="playing">
-              <span class="oi oi-media-record"></span>
-              {{ recording ? 'Stop' : 'Record' }}
-            </button>
+            <div class="form-check">
+              <input class="form-check-input"
+                    type="checkbox"
+                    id="autoplay"
+                    v-model="autoplay">
+              <label class="form-check-label" for="autoplay">
+                Play automatically.
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -83,12 +119,13 @@
         playing: false,
         recording: false,
         hasRecorded: false,
-        errorMessage: null
+        autoplay: true,
+        errorMessage: null,
       },
       mounted: async function() {
         vue = this;
         await navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(stream => {
+          .then(stream =>  {
             vue.mediaRecorder = new MediaRecorder(stream);
             
             audioChunks = [];
@@ -101,6 +138,10 @@
               audioChunks = [];
               const audioUrl = URL.createObjectURL(audioBlob);
               vue.$refs.audio.src = audioUrl;
+
+              if (vue.autoplay) {
+                vue.play();
+              }
             });
           }).catch(function(err) {
             vue.errorMessage = err.name + ": " + err.message;
@@ -116,14 +157,14 @@
           }
           this.playing = !this.playing;
         },
-        record: async function() {
-          if (this.recording) {
-            await this.mediaRecorder.stop();
-            this.hasRecorded = true;
-          } else {
-            this.mediaRecorder.start();
-          }
+        startRecording: async function() {
+          this.mediaRecorder.start();
           this.recording = !this.recording;
+        },
+        stopRecording: async function() {
+          await this.mediaRecorder.stop();
+          this.hasRecorded = true;
+          this.recording = false;
         },
         onAudioEnded: function() {
           this.playing = false;
