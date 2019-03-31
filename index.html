@@ -47,18 +47,20 @@
       <div v-else>
         <div class="row mt-3">
           <div class="col-md-10 offset-md-1">
-            <button type="button"
-                    class="btn btn-primary btn-lg btn-block media-button"
-                    v-if="hasRecorded"
-                    v-on:click="togglePlay"
-                    v-bind:disabled="recording">
-              <span v-if="playing" class="oi oi-media-stop"></span>
-              <span v-else class="oi oi-media-play"></span>
-              {{ playing ? 'Stop' : 'Play' }}
-            </button>
-            <div v-else class="media-button-placeholder">
+            <div v-if="state == State.NO_RECORDING"
+                 class="media-button-placeholder">
               Press and hold the Record button to begin.
             </div>
+            <button type="button"
+                    class="btn btn-primary btn-lg btn-block media-button"
+                    v-else
+                    v-on:click="togglePlay"
+                    v-bind:disabled="state == State.RECORDING">
+              <span v-if="state == State.PLAYING" class="oi oi-media-stop">
+              </span>
+              <span v-else class="oi oi-media-play"></span>
+              {{ state == State.PLAYING ? 'Stop' : 'Play' }}
+            </button>
           </div>
         </div>
         <div class="row mt-3">
@@ -70,7 +72,7 @@
                     v-on:mouseup="stopRecording"
                     v-on:touchend="stopRecording">
               <span class="oi oi-media-record"></span>
-              {{ recording ? 'Recording...' : 'Record' }}
+              {{ state == State.RECORDING ? 'Recording...' : 'Record' }}
             </button>
           </div>
         </div>
@@ -123,13 +125,17 @@
   </div>
 
   <script>
+    var State = {
+      NO_RECORDING: 0,
+      STOPPED: 1,
+      PLAYING: 2,
+      RECORDING: 3
+    };
     var app = new Vue({
       el: '#app',
       data: {
+        state: State.NO_RECORDING,
         audioUrl: null,
-        playing: false,
-        recording: false,
-        hasRecorded: false,
         autoplay: true,
         loop: false,
         errorMessage: null,
@@ -165,37 +171,36 @@
           this.$refs.audio.currentTime = 0;
           const vue = this;
           await this.$refs.audio.play().then(() => {
-            vue.playing = true;
+            vue.state = State.PLAYING;
           });
           this.playLock = false;
         },
         stop: function() {
           this.$refs.audio.pause();
-          this.playing = false;
+          this.state = State.STOPPED;
         },
         togglePlay: function() {
-          if (this.playing) {
+          if (this.state == State.PLAYING) {
             this.stop();
           } else {
             this.play();
           }
         },
         startRecording: function() {
-          if (this.playing) {
+          if (this.state == State.PLAYING) {
             this.stop();
           }
           this.mediaRecorder.start();
-          this.recording = true;
+          this.state = State.RECORDING;
         },
         stopRecording: function() {
           this.$nextTick(function() {
             this.mediaRecorder.stop();
-            this.hasRecorded = true;
-            this.recording = false;
+            this.state = State.STOPPED;
           });
         },
         onAudioEnded: function() {
-          this.playing = false;
+          this.state = State.STOPPED;
         },
         onCanPlay: function() {
           if (this.playRequested) {
