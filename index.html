@@ -55,7 +55,7 @@
                     class="btn btn-primary btn-lg btn-block media-button"
                     v-else
                     v-on:click="togglePlay"
-                    v-bind:disabled="state == State.RECORDING">
+                    v-bind:disabled="isRecording()">
               <span v-if="state == State.PLAYING" class="oi oi-media-stop">
               </span>
               <span v-else class="oi oi-media-play"></span>
@@ -71,8 +71,9 @@
                     v-on:touchstart="startRecording"
                     v-on:mouseup="stopRecording"
                     v-on:touchend="stopRecording">
-              <span class="oi oi-media-record"></span>
-              {{ state == State.RECORDING ? 'Recording...' : 'Record' }}
+              <span v-if="state != State.RECORDING_WAITING_FOR_TIMEOUT"
+                    class="oi oi-media-record"></span>
+              {{ recordingButtonLabel() }}
             </button>
           </div>
         </div>
@@ -125,11 +126,13 @@
   </div>
 
   <script>
+    var END_OF_RECORDING_DELAY = 200;
     var State = {
       NO_RECORDING: 0,
       STOPPED: 1,
       PLAYING: 2,
-      RECORDING: 3
+      RECORDING: 3,
+      RECORDING_WAITING_FOR_TIMEOUT: 4
     };
     var app = new Vue({
       el: '#app',
@@ -165,6 +168,20 @@
           });
       },
       methods: {
+        recordingButtonLabel: function() {
+          switch (this.state) {
+            case State.RECORDING:
+              return 'Recording...';
+            case State.RECORDING_WAITING_FOR_TIMEOUT:
+              return 'Processing...';
+            default:
+              return 'Record';
+          }
+        },
+        isRecording: function() {
+          return this.state == State.RECORDING ||
+                 this.state == State.RECORDING_WAITING_FOR_TIMEOUT;
+        },
         play: async function() {
           if (this.playLock) return;
           this.playLock = true;
@@ -194,10 +211,12 @@
           this.state = State.RECORDING;
         },
         stopRecording: function() {
-          this.$nextTick(function() {
-            this.mediaRecorder.stop();
-            this.state = State.STOPPED;
-          });
+          var vue = this;
+          setTimeout(() => {
+            vue.mediaRecorder.stop();
+            vue.state = State.STOPPED;
+          }, END_OF_RECORDING_DELAY);
+          this.state = State.RECORDING_WAITING_FOR_TIMEOUT;
         },
         onAudioEnded: function() {
           this.state = State.STOPPED;
